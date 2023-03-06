@@ -7,14 +7,23 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
       - name: Cache dependencies
+        id: cache
         uses: actions/cache@v3
         with:
-          path: ~/.npm
-          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+          path: node_modules #cache local folder
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}        
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true' #install only if cache doesn't exist
         run: npm ci
       - name: Run tests
+        id: run-tests
         run: npm test
+      - name: Upload test report
+        if: failure() && steps.run-tests.outcome == 'failure'
+        uses: actions/upload-artifacts@v3
+        with:
+          name: test-report
+          path: test.json
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -24,11 +33,13 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
       - name: Cache dependencies
+        id: cache
         uses: actions/cache@v3
         with:
-          path: ~/.npm
+          path: node_modules #cache local folder
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}        
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true' #install only if cache doesn't exist
         run: npm ci
       - name: Build project
         run: npm run build
@@ -56,3 +67,12 @@ jobs:
         run: echo "${{ needs.build.outputs.script-file }}"
       - name: Deploy
         run: echo "Deployment simulation..."
+  report:
+    needs: [deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output information
+        run: |
+          echo "Something went wrong"
+          echo "$${{ github }}"

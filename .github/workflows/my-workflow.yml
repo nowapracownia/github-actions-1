@@ -57,16 +57,7 @@ jobs:
           #  package.json
   deploy:
     needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: dist-files
-      - name: Use output
-        run: echo "${{ needs.build.outputs.script-file }}"
-      - name: Deploy
-        run: echo "Deployment simulation..."
+    uses: ./.github/workflows/reusable-deploy.yml
   report:
     needs: [deploy]
     if: failure()
